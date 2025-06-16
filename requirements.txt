@@ -1,4 +1,4 @@
 gym
 numpy
 scipy
-sklearn
+scikit-learn
