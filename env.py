@@ -370,10 +370,9 @@ env.walls = evolved_maze.copy()  # Set the maze walls
 obs = env.reset()
 env.walls = evolved_maze.copy()  # Re-apply the evolved maze after reset
 
-
 print("Result:")
 for row in env.walls:
-    print("".join(['#' if cell else '.' for cell in row.astype(int)]))
+    print("".join(['X' if cell else '0' for cell in row.astype(int)]))
 
 # Now you can use env as usual
 
