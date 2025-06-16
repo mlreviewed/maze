@@ -435,16 +435,16 @@ def path_length_metric(maze):
     return 0  # Unsolvable
 
 # 1. Evolve a maze
-generator = MazeGenerator(k=7, population_size=30)
+generator = MazeGenerator(k=11, population_size=30)
 evolved_maze = generator.evolve(
-    generations=50,
+    generations=500,
     metric_fn=path_length_metric,
-    mutation_rate=0.05,
+    mutation_rate=0.1,
     elite_fraction=0.2
 )
 
 # 2. Instantiate the environment with the evolved maze
-env = MazeEnv(k=7, n_bots=2, local_grid_size=5, max_steps=1000)
+env = MazeEnv(k=11, n_bots=1, local_grid_size=11, max_steps=1000)
 env.walls = evolved_maze.copy()  # Set the maze walls
 
 # 3. Optionally, reset the environment to start a new episode
