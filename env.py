@@ -335,6 +335,23 @@ class MazeGenerator:
         best_idx = np.argmax([self.fitness(m, metric_fn) for m in population])
         return population[best_idx]
 
+import scipy.ndimage
+
+def path_length_metric(maze):
+    # Use BFS to find shortest path from (0,0) to (k-1,k-1)
+    k = maze.shape[0]
+    visited = np.zeros_like(maze)
+    queue = [(0, 0, 0)]  # (x, y, distance)
+    while queue:
+        x, y, dist = queue.pop(0)
+        if (x, y) == (k-1, k-1):
+            return dist
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nx, ny = x+dx, y+dy
+            if 0 <= nx < k and 0 <= ny < k and maze[nx, ny] == 0 and not visited[nx, ny]:
+                visited[nx, ny] = 1
+                queue.append((nx, ny, dist+1))
+    return 0  # Unsolvable
 
 # 1. Evolve a maze
 generator = MazeGenerator(k=7, population_size=30)
