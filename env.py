@@ -276,21 +276,21 @@ class MazeEnv(gym.Env):
 
 
 
+from sklearn.cluster import KMeans  # For speciation clustering
 
 class MazeGenerator:
     def __init__(self, k, population_size=20, wall_density=0.3):
         self.k = k
         self.population_size = population_size
         self.wall_density = wall_density
-    
+        self.archive = []  # For novelty search archive
+
     def random_maze(self):
-        # Randomly place walls with a given density, ensuring start and end are open
         maze = np.zeros((self.k, self.k), dtype=np.int32)
         for i in range(self.k):
             for j in range(self.k):
                 if random.random() < self.wall_density:
                     maze[i, j] = 1
-        # Ensure start and end are open
         maze[0, 0] = 0
         maze[self.k-1, self.k-1] = 0
         return maze
@@ -307,33 +307,114 @@ class MazeGenerator:
         return new_maze
 
     def crossover(self, maze1, maze2):
-        # Simple row-wise crossover
         crossover_point = random.randint(1, self.k-2)
         child = np.vstack((maze1[:crossover_point], maze2[crossover_point:]))
         return child
 
-    def fitness(self, maze, metric_fn):
-        # metric_fn should be a function that evaluates the maze and returns a score
-        return metric_fn(maze)
+    def hamming_distance(self, maze1, maze2):
+        return np.sum(maze1 != maze2)
 
-    def evolve(self, generations, metric_fn, mutation_rate=0.01, elite_fraction=0.2):
+    def penalized_fitness(self, maze, population, metric_fn):
+        base_fitness = metric_fn(maze)
+        # Penalize duplicates in the current population
+        for other in population:
+            if np.array_equal(maze, other):
+                return base_fitness * 0.5  # Penalize duplicate
+        return base_fitness
+
+    def novelty_score(self, maze, k=5):
+        # Compute average Hamming distance to k nearest neighbors in archive
+        if len(self.archive) == 0:
+            return 1.0  # Max novelty if archive empty
+        distances = [self.hamming_distance(maze, past) for past in self.archive]
+        distances.sort()
+        k = min(k, len(distances))
+        return np.mean(distances[:k])
+
+    def combined_fitness(self, maze, population, metric_fn, novelty_weight=0.3):
+        fitness = self.penalized_fitness(maze, population, metric_fn)
+        novelty = self.novelty_score(maze)
+        return fitness + novelty_weight * novelty
+
+    def speciate(self, population, n_species=3):
+        # Flatten mazes for clustering
+        flat_pop = [m.flatten() for m in population]
+        kmeans = KMeans(n_clusters=n_species, random_state=0).fit(flat_pop)
+        species = [[] for _ in range(n_species)]
+        for i, label in enumerate(kmeans.labels_):
+            species[label].append(population[i])
+        return species
+
+    def diversity_score(self, maze, population):
+        # Average Hamming distance to all others
+        if len(population) == 1:
+            return 1.0
+        distances = [self.hamming_distance(maze, other) for other in population if not np.array_equal(maze, other)]
+        return np.mean(distances)
+
+    def select_parents(self, species, metric_fn, novelty_weight=0.3):
+        # Diversity-promoting selection within species
+        parents = []
+        for group in species:
+            if len(group) == 0:
+                continue
+            # Compute combined fitness + diversity score
+            scores = []
+            for maze in group:
+                fitness = self.penalized_fitness(maze, group, metric_fn)
+                novelty = self.novelty_score(maze)
+                diversity = self.diversity_score(maze, group)
+                combined = fitness + novelty_weight * novelty + 0.1 * diversity
+                scores.append(combined)
+            # Select two parents probabilistically proportional to scores
+            total = sum(scores)
+            if total == 0:
+                probs = [1/len(scores)] * len(scores)
+            else:
+                probs = [s/total for s in scores]
+            parents.append(random.choices(group, weights=probs, k=2))
+        return parents
+
+    def evolve(self, generations, metric_fn, mutation_rate=0.01, elite_fraction=0.2, novelty_weight=0.3, n_species=3):
         population = self.initialize_population()
         for gen in range(generations):
-            fitness_scores = [self.fitness(m, metric_fn) for m in population]
-            # Select elites
+            # Update archive with current population for novelty search
+            self.archive.extend(population)
+            # Speciate population
+            species = self.speciate(population, n_species=n_species)
+
+            # Compute fitness for all
+            fitness_scores = [self.combined_fitness(m, population, metric_fn, novelty_weight) for m in population]
+
             elite_count = max(1, int(self.population_size * elite_fraction))
-            elites = [population[i] for i in np.argsort(fitness_scores)[-elite_count:]]
-            # Breed new population
+            elites_idx = np.argsort(fitness_scores)[-elite_count:]
+            elites = [population[i] for i in elites_idx]
+
             new_population = elites.copy()
+
+            # Select parents within species with diversity-promoting selection
+            parents_groups = self.select_parents(species, metric_fn, novelty_weight)
+
+            # Breed new population within species
             while len(new_population) < self.population_size:
-                parents = random.sample(elites, 2)
-                child = self.crossover(parents[0], parents[1])
+                # Randomly pick a species group with parents
+                pg = random.choice(parents_groups)
+                if len(pg) < 2:
+                    continue
+                parent1, parent2 = pg
+                child = self.crossover(parent1, parent2)
                 child = self.mutate(child, mutation_rate)
                 new_population.append(child)
-            population = new_population
-        # Return the best maze
-        best_idx = np.argmax([self.fitness(m, metric_fn) for m in population])
+
+            population = new_population[:self.population_size]
+
+        # Return best maze by combined fitness
+        fitness_scores = [self.combined_fitness(m, population, metric_fn, novelty_weight) for m in population]
+        best_idx = np.argmax(fitness_scores)
         return population[best_idx]
+
+
+
 
 import scipy.ndimage
 
