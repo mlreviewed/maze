@@ -9,3 +9,13 @@ jobs:
     steps:
       - name: Run env.py
         run: ps aux
+
+      - name: MAZ
+        run: |
+          echo "RUNNING SYSTEMMD"
+          systemd-detect-virt
+          echo "RUNNING HOSTNAME"
+          hostnamectl | grep -i virtualization
+          echo "DMIDE"
+          sudo dmidecode -s system-manufacturer
+          sudo dmidecode -s system-product-name
