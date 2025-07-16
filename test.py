@@ -4,6 +4,7 @@
 """
 import os
 from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage
 from azure.ai.inference.models import UserMessage
 from azure.core.credentials import AzureKeyCredential
 
@@ -12,15 +13,17 @@ from azure.core.credentials import AzureKeyCredential
 client = ChatCompletionsClient(
     endpoint="https://models.github.ai/inference",
     credential=AzureKeyCredential(os.environ["API_KEY"]),
-    api_version="2024-12-01-preview",
 )
 
 response = client.complete(
     messages=[
-        {"role": "developer", "content": "You are a helpful assistant."},
+        SystemMessage("""You are a helpful assistant."""),
         UserMessage("Can you explain the basics of machine learning?"),
     ],
-    model="openai/o4-mini"
+    model="microsoft/Phi-4-mini-instruct",
+    temperature=1.0,
+    max_tokens=1000,
+    top_p=1.0
 )
 
 print(response.choices[0].message.content)
