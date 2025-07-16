@@ -1,9 +1,6 @@
 name: Run Azure Inference Test
 
 on:
-  push:
-    branches:
-      - main  # or your desired branch
   workflow_dispatch:  # allows manual trigger from GitHub UI
 
 jobs:
