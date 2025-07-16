@@ -1,0 +1,31 @@
+name: Run Azure Inference Test
+
+on:
+  push:
+    branches:
+      - main  # or your desired branch
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+jobs:
+  run-inference:
+    name: Run test.py
+    runs-on: ubuntu-latest
+    environment: test  # 👈 Make sure this matches your GitHub Environments name
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install azure-ai-inference
+
+      - name: Run test.py
+        env:
+          API_KEY: ${{ secrets.API_KEY }}  # 👈 Inject your secret into the environment
+        run: python test.py
