@@ -1,8 +1,9 @@
 name: Summarize new issues
 
 on:
+  workflow_dispatch:  # 👈 for manual trigger via UI
   issues:
-    types: [opened]
+    types: [opened]   # 👈 still supports automatic trigger when issues are opened
 
 jobs:
   summary:
