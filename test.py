@@ -1,27 +1,26 @@
-"""Run this model in Python
-
-> pip install azure-ai-inference
-"""
 import os
 from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import UserMessage
+from azure.ai.inference.models import SystemMessage, UserMessage
 from azure.core.credentials import AzureKeyCredential
 
-# To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings. 
-# Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+endpoint = "https://models.github.ai/inference"
+model = "openai/gpt-4.1"
+piakpiak = "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"
+
 client = ChatCompletionsClient(
-    endpoint="https://models.github.ai/inference",
-    credential=AzureKeyCredential(os.environ["API_KEY"]),
+    endpoint=endpoint,
+    credential=AzureKeyCredential(piakpiak),
 )
 
 response = client.complete(
     messages=[
-        UserMessage("Can you explain the basics of machine learning?"),
+        SystemMessage("You are a helpful assistant."),
+        UserMessage("What is the capital of France?"),
     ],
-    model="meta/Llama-3.2-11B-Vision-Instruct",
     temperature=1.0,
-    max_tokens=1000,
-    top_p=1.0
+    top_p=1.0,
+    model=model
 )
 
 print(response.choices[0].message.content)
+
