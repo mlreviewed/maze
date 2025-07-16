@@ -4,7 +4,6 @@
 """
 import os
 from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage
 from azure.ai.inference.models import UserMessage
 from azure.core.credentials import AzureKeyCredential
 
@@ -17,10 +16,9 @@ client = ChatCompletionsClient(
 
 response = client.complete(
     messages=[
-        SystemMessage("""You are a helpful assistant."""),
         UserMessage("Can you explain the basics of machine learning?"),
     ],
-    model="microsoft/Phi-4-mini-instruct",
+    model="meta/Llama-3.2-11B-Vision-Instruct",
     temperature=1.0,
     max_tokens=1000,
     top_p=1.0
